@@ -39,9 +39,12 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:15
 .ad{position:fixed;inset:0;background:#000;z-index:20;display:flex;flex-direction:column}.adb{flex:1;display:flex;min-height:0}
 .adb img,.adb iframe{width:100%;height:100%;border:0;object-fit:contain;background:#fff}
 .adf{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:center;color:#fff}.adf a{color:#9fe}
-</style></head><body><div id="app"></div><div id="toast"></div><script>
-const K='samity_v2',MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-let S;
+</style></head><body><div id="app"></div><div id="toast"></div><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script><script>const APPNAME="adm";
+const CFG={apiKey:"AIzaSyB3p8sTVk3-1BmkmdHzxfgQ4dFsRxVfghk",authDomain:"zadul-ulama.firebaseapp.com",projectId:"zadul-ulama",storageBucket:"zadul-ulama.firebasestorage.app",messagingSenderId:"1059850457295",appId:"1:1059850457295:web:19b4c9e4b875cd16c3a7ba"};
+const APP=firebase.initializeApp(CFG,APPNAME),auth=APP.auth(),db=APP.firestore();
+const DOM='@zadul-ulama.app',AEMAIL='admin'+DOM,PW=p=>p+'@samity';
+const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+const S={org:'আমাদের সংগঠন',about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'',ad:'',hHtml:'',mHtml:'',members:[],deposits:[],loans:[],chat:[]};
 const $=i=>document.getElementById(i),v=i=>$(i).value.trim();
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const D=s=>String(s).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]),E=s=>s.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));
@@ -49,9 +52,16 @@ const tk=n=>'৳ '+Number(n).toLocaleString('bn-BD');
 const fm=m=>{const[y,o]=m.split('-');return MN[o-1]+' '+D(y)};
 const fd=s=>{const[y,m,d]=s.split('-');return D(+d)+' '+MN[m-1]+' '+D(y)};
 const today=()=>new Date().toISOString().slice(0,10);
-async function H(p){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('sm:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return'p:'+p}}
-function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
-function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+const normP=s=>E(s).replace(/[\s-]/g,'').replace(/^\+?88/,'');
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
+const authErr=e=>({'auth/invalid-credential':'নাম্বার বা পাসওয়ার্ড ভুল','auth/wrong-password':'নাম্বার বা পাসওয়ার্ড ভুল','auth/user-not-found':'নাম্বার বা পাসওয়ার্ড ভুল','auth/network-request-failed':'ইন্টারনেট সংযোগ নেই','auth/too-many-requests':'অনেকবার ভুল হয়েছে, কিছুক্ষণ পরে চেষ্টা করুন'}[e&&e.code]||'সমস্যা: '+((e&&(e.code||e.message))||e));
+const err=e=>toast(e&&e.code==='permission-denied'?'অনুমতি নেই — Firestore Rules বসানো হয়েছে কিনা দেখুন':authErr(e));
+const col=n=>db.collection(n);
+let subs=[];
+function listen(name,q,cb){subs.push(q.onSnapshot(s=>{S[name]=s.docs.map(d=>({id:d.id,...d.data()}));cb(name)},e=>err(e)))}
+function unlisten(){subs.forEach(f=>f());subs=[];S.members=[];S.deposits=[];S.loans=[];S.chat=[]}
+function listenSettings(){col('settings').doc('main').onSnapshot(s=>{if(s.exists)Object.assign(S,s.data());render()},e=>console.error(e))}
+const onData=n=>{if(typeof pg!=='undefined'&&pg==='ad')return;n==='chat'?chatNow():render()};
 const memb=id=>S.members.find(m=>m.id==id)||{name:'(মুছে ফেলা)',phone:''};
 const dep=id=>S.deposits.filter(d=>d.mid==id).reduce((a,d)=>a+d.amt,0);
 const paidS=l=>l.paid.reduce((a,p)=>a+p.amt,0),due=l=>l.amt-paidS(l);
@@ -60,19 +70,10 @@ function addM(m,i){let[y,o]=m.split('-').map(Number);const t=o-1+i;return(y+Math
 function sched(l){const per=Math.ceil(l.amt/l.n);return Array.from({length:l.n},(_,i)=>{const m=addM(l.start,i);return{m,a:i<l.n-1?per:l.amt-per*(l.n-1),paid:l.paid.find(p=>p.m===m)}})}
 const av=(m,s=40)=>m.photo?`<img class="av" style="width:${s}px;height:${s}px" src="${m.photo}">`:`<span class="av" style="width:${s}px;height:${s}px;font-size:${s/2.2}px">${esc((m.name||'?')[0])}</span>`;
 const frame=h=>h?`<div class="card"><iframe class="fr" sandbox="allow-scripts" srcdoc="${esc(h)}"></iframe></div>`:'';
-function bubbles(mid,side){return S.chat.filter(c=>c.mid==mid).map(c=>`<div class="b ${c.from===side?'me':''}">${esc(c.text)}<small>${D(c.ts.slice(5,10))} ${D(c.ts.slice(11,16))}</small></div>`).join('')||'<p class="mu">এখনো কোনো বার্তা নেই</p>'}
+function bubbles(mid,side){return S.chat.filter(c=>c.mid==mid).sort((a,b)=>a.ts.localeCompare(b.ts)).map(c=>`<div class="b ${c.from===side?'me':''}">${esc(c.text)}<small>${D(c.ts.slice(5,10))} ${D(c.ts.slice(11,16))}</small></div>`).join('')||'<p class="mu">এখনো কোনো বার্তা নেই</p>'}
 function refreshChat(mid,side){const c=$('cb');if(c){c.innerHTML=bubbles(mid,side);c.scrollTop=1e9}}
-function send(mid,side){const t=v('ci');if(!t)return;S.chat.push({id:S.n++,mid,from:side,text:t,ts:new Date().toISOString()});save();$('ci').value='';refreshChat(mid,side)}
-const chatUI=(mid,side)=>`<div class="card"><div id="cb" class="cb"></div><div class="row"><input id="ci" placeholder="বার্তা লিখুন…" onkeydown="if(event.key==='Enter')send(${mid},'${side}')"><button class="btn" onclick="send(${mid},'${side}')">পাঠান</button></div></div>`;
-async function boot(){
- try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
- if(!S){S={org:'আমাদের সংগঠন',admin:await H('admin123'),n:20,about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'যোগাযোগ: সংগঠনের অফিস / মোবাইল নাম্বার',ad:'',hHtml:'',mHtml:'',
- members:[{id:1,name:'ডেমো সদস্য',phone:'01775057576',pass:await H('1234'),joined:'2026-08-01'}],
- deposits:[{id:2,mid:1,month:'2026-08',amt:500,date:'2026-08-05'},{id:3,mid:1,month:'2026-09',amt:500,date:'2026-09-07'},{id:4,mid:1,month:'2026-10',amt:500,date:'2026-10-05'}],
- loans:[{id:5,mid:1,amt:3000,n:6,start:'2026-10',date:'2026-10-01',note:'নমুনা ঋণ',paid:[{m:'2026-10',amt:500,date:'2026-10-20'}]}],
- chat:[{id:6,mid:1,from:'a',text:'স্বাগতম! কোনো প্রশ্ন থাকলে এখানে লিখুন।',ts:new Date().toISOString()}]};save()}
- addEventListener('storage',e=>{if(e.key===K&&e.newValue){S=JSON.parse(e.newValue);if(typeof chatNow==='function')chatNow()}});
- render()}
+function send(mid,side){const t=v('ci');if(!t)return;$('ci').value='';col('chat').add({mid,from:side,text:t,ts:new Date().toISOString()}).catch(err)}
+const chatUI=(mid,side)=>`<div class="card"><div id="cb" class="cb"></div><div class="row"><input id="ci" placeholder="বার্তা লিখুন…" onkeydown="if(event.key==='Enter')send('${mid}','${side}')"><button class="btn" onclick="send('${mid}','${side}')">পাঠান</button></div></div>`;
 
 let ok=0,tab='dash',pend=null,cm=null;
 const app=h=>$('app').innerHTML=h;
@@ -80,9 +81,9 @@ const ask=k=>{if(pend!==k){pend=k;render();return false}pend=null;return true};
 function chatNow(){if(ok&&tab==='chat'&&cm)refreshChat(cm,'a')}
 async function login(){if(await H(E(v('lw')))!==S.admin)return toast('পাসওয়ার্ড ভুল');ok=1;render()}
 function render(){
- if(!ok)return app(`<div class="wrap"><div class="card login"><h2 style="text-align:center;font-size:24px">🛡️ অ্যাডমিন প্যানেল</h2><p class="mu" style="text-align:center;margin-top:0">${esc(S.org)}</p><input id="lw" type="password" placeholder="অ্যাডমিন পাসওয়ার্ড" onkeydown="if(event.key==='Enter')login()"><button class="btn" style="width:100%" onclick="login()">প্রবেশ করুন</button><p class="mu" style="font-size:13px;margin-bottom:0">প্রথম পাসওয়ার্ড: admin123 (সেটিংস থেকে বদলে নিন)</p></div></div>`);
+ if(!ok)return app(`<div class="wrap"><div class="card login"><h2 style="text-align:center;font-size:24px">🛡️ অ্যাডমিন প্যানেল</h2><p class="mu" style="text-align:center;margin-top:0">${esc(S.org)}</p><input id="lw" type="password" placeholder="অ্যাডমিন পাসওয়ার্ড" onkeydown="if(event.key==='Enter')login()"><button class="btn" style="width:100%" onclick="login()">প্রবেশ করুন</button><button class="btn g" style="width:100%;margin-top:8px" onclick="setup()">প্রথমবার? অ্যাডমিন একাউন্ট তৈরি করুন</button></div></div>`);
  const T=[['dash','ড্যাশবোর্ড'],['mem','সদস্য'],['dep','মাসিক জমা'],['loan','ঋণ ও কিস্তি'],['chat','চ্যাট'],['set','সেটিংস']];
- app(`<div class="hd"><b>🛡️ ${esc(S.org)} · অ্যাডমিন</b><button onclick="ok=0;pend=null;render()">লগআউট</button></div><div class="wrap"><nav>${T.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';pend=null;render()">${t[1]}</button>`).join('')}</nav>${({dash,mem,depv,loanv,chat,set})[{dep:'depv',loan:'loanv'}[tab]||tab]()}</div>`);chatNow()}
+ app(`<div class="hd"><b>🛡️ ${esc(S.org)} · অ্যাডমিন</b><button onclick="auth.signOut()">লগআউট</button></div><div class="wrap"><nav>${T.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';pend=null;render()">${t[1]}</button>`).join('')}</nav>${({dash,mem,depv,loanv,chat,set})[{dep:'depv',loan:'loanv'}[tab]||tab]()}</div>`);chatNow()}
 const opts=(s)=>S.members.map(m=>`<option value="${m.id}" ${m.id==s?'selected':''}>${esc(m.name)}</option>`).join('');
 const del=(k,f)=>`<button class="btn s d" onclick="${f}">${pend===k?'নিশ্চিত?':'মুছুন'}</button>`;
 function dash(){const td=S.deposits.reduce((a,d)=>a+d.amt,0),tl=S.loans.reduce((a,l)=>a+l.amt,0),du=S.loans.reduce((a,l)=>a+due(l),0);
@@ -92,28 +93,38 @@ function dash(){const td=S.deposits.reduce((a,d)=>a+d.amt,0),tl=S.loans.reduce((
  <div class="card"><h2>সাম্প্রতিক জমা</h2><div class="tw"><table><tr><th>সদস্য</th><th>মাস</th><th>তারিখ</th><th>টাকা</th></tr>${S.deposits.slice(-6).reverse().map(d=>`<tr><td>${esc(memb(d.mid).name)}</td><td>${fm(d.month)}</td><td>${fd(d.date)}</td><td>${tk(d.amt)}</td></tr>`).join('')}</table></div></div>`}
 function mem(){return`<div class="card"><h2>নতুন সদস্য</h2><div class="row"><input id="mn" placeholder="নাম"><input id="mp" placeholder="মোবাইল নাম্বার" inputmode="tel"><input id="mw" placeholder="পাসওয়ার্ড"><button class="btn" onclick="addMem()">যোগ করুন</button></div></div>
  <div class="card"><h2>সদস্য তালিকা</h2><div class="tw"><table><tr><th>সদস্য</th><th>জমা</th><th>বকেয়া</th><th>পাসওয়ার্ড রিসেট</th><th></th></tr>${S.members.map(m=>`<tr><td><div class="row" style="flex-wrap:nowrap">${av(m,38)}<span><b>${esc(m.name)}</b><br><span class="mu">${D(esc(m.phone))}</span></span></div></td><td>${tk(dep(m.id))}</td><td>${tk(dueOf(m.id))}</td>
- <td><div class="row" style="flex-wrap:nowrap"><input id="rp${m.id}" placeholder="নতুন" style="width:90px"><button class="btn s g" onclick="resetP(${m.id})">দিন</button></div></td><td>${del('m'+m.id,`delM(${m.id})`)}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">কোনো সদস্য নেই</td></tr>'}</table></div></div>`}
+ <td><div class="row" style="flex-wrap:nowrap"><input id="rp${m.id}" placeholder="নতুন" style="width:90px"><button class="btn s g" onclick="resetP('${m.id}')">দিন</button></div></td><td>${del('m'+m.id,`delM('${m.id}')`)}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">কোনো সদস্য নেই</td></tr>'}</table></div></div>`}
 function depv(){return`<div class="card"><h2>মাসিক জমা নিন</h2><div class="row"><select id="dm">${opts()}</select><input id="dmo" type="month" value="${today().slice(0,7)}"><input id="da" type="number" placeholder="টাকা" min="1"><input id="dd" type="date" value="${today()}"><button class="btn" onclick="addD()">সংরক্ষণ</button></div></div>
- <div class="card"><h2>কে কোন মাসে কোন দিন কত জমা দিয়েছে</h2><div class="tw"><table><tr><th>সদস্য</th><th>মাস</th><th>দিন</th><th>টাকা</th><th></th></tr>${[...S.deposits].sort((a,b)=>b.date.localeCompare(a.date)).map(d=>`<tr><td>${esc(memb(d.mid).name)}</td><td>${fm(d.month)}</td><td>${fd(d.date)}</td><td>${tk(d.amt)}</td><td>${del('d'+d.id,`delD(${d.id})`)}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">কিছু নেই</td></tr>'}</table></div></div>`}
+ <div class="card"><h2>কে কোন মাসে কোন দিন কত জমা দিয়েছে</h2><div class="tw"><table><tr><th>সদস্য</th><th>মাস</th><th>দিন</th><th>টাকা</th><th></th></tr>${[...S.deposits].sort((a,b)=>b.date.localeCompare(a.date)).map(d=>`<tr><td>${esc(memb(d.mid).name)}</td><td>${fm(d.month)}</td><td>${fd(d.date)}</td><td>${tk(d.amt)}</td><td>${del('d'+d.id,`delD('${d.id}')`)}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">কিছু নেই</td></tr>'}</table></div></div>`}
 function loanv(){return`<div class="card"><h2>নতুন ঋণ প্রদান</h2><div class="row"><select id="lm">${opts()}</select><input id="la" type="number" placeholder="ঋণের টাকা" min="1"><input id="ln" type="number" placeholder="কত কিস্তি" min="1"><input id="ls" type="month" value="${today().slice(0,7)}" title="প্রথম কিস্তির মাস"><input id="lt" placeholder="নোট (ঐচ্ছিক)"><button class="btn" onclick="addL()">ঋণ দিন</button></div><small class="mu">প্রথম কিস্তির মাস থেকে প্রতি মাসে একটি করে কিস্তি ধরা হবে।</small></div>
- <div class="card"><h2>ঋণ ও কিস্তি</h2><div class="tw"><table><tr><th>সদস্য</th><th>ঋণ</th><th>কিস্তি</th><th>বাকি</th><th>কিস্তি নিন</th><th></th></tr>${[...S.loans].reverse().map(l=>{const s=sched(l),nx=s.find(x=>!x.paid);return`<tr><td>${esc(memb(l.mid).name)}<br><span class="mu">${fd(l.date)}</span></td><td>${tk(l.amt)}</td><td>${D(l.paid.length)}/${D(l.n)}</td><td><b>${tk(due(l))}</b></td><td>${nx?`<button class="btn s g" onclick="pay(${l.id})">${fm(nx.m)} · ${tk(nx.a)}</button>`:'<span class="pill">পরিশোধিত</span>'}</td><td>${del('l'+l.id,`delL(${l.id})`)}</td></tr>`}).join('')||'<tr><td colspan=6 class="mu">কোনো ঋণ নেই</td></tr>'}</table></div></div>`}
+ <div class="card"><h2>ঋণ ও কিস্তি</h2><div class="tw"><table><tr><th>সদস্য</th><th>ঋণ</th><th>কিস্তি</th><th>বাকি</th><th>কিস্তি নিন</th><th></th></tr>${[...S.loans].reverse().map(l=>{const s=sched(l),nx=s.find(x=>!x.paid);return`<tr><td>${esc(memb(l.mid).name)}<br><span class="mu">${fd(l.date)}</span></td><td>${tk(l.amt)}</td><td>${D(l.paid.length)}/${D(l.n)}</td><td><b>${tk(due(l))}</b></td><td>${nx?`<button class="btn s g" onclick="pay('${l.id}')">${fm(nx.m)} · ${tk(nx.a)}</button>`:'<span class="pill">পরিশোধিত</span>'}</td><td>${del('l'+l.id,`delL('${l.id}')`)}</td></tr>`}).join('')||'<tr><td colspan=6 class="mu">কোনো ঋণ নেই</td></tr>'}</table></div></div>`}
 function chat(){if(!S.members.length)return'<div class="card mu">আগে সদস্য যোগ করুন</div>';if(!cm||!S.members.some(m=>m.id==cm))cm=S.members[0].id;
- return`<div class="card"><select id="cs" style="width:100%" onchange="cm=+this.value;render()">${opts(cm)}</select></div>${chatUI(cm,'a')}`}
+ return`<div class="card"><select id="cs" style="width:100%" onchange="cm=this.value;render()">${opts(cm)}</select></div>${chatUI(cm,'a')}`}
 function set(){return`<div class="card"><h2>ওয়েবসাইটের তথ্য</h2><input id="on" value="${esc(S.org)}" style="width:100%;margin-bottom:8px" placeholder="সংগঠনের নাম"><textarea id="ab" rows="3" style="width:100%;margin-bottom:8px" placeholder="পরিচিতি">${esc(S.about)}</textarea><input id="ct" value="${esc(S.contact)}" style="width:100%" placeholder="যোগাযোগ"></div>
  <div class="card"><h2>📢 বিজ্ঞাপন (প্রতিদিন প্রথমবার লগইনে ৫ সেকেন্ড)</h2><input id="al" value="${esc(S.ad)}" style="width:100%" placeholder="বিজ্ঞাপনের সরাসরি লিংক (ছবির লিংক .jpg/.png হলে সবচেয়ে ভালো)"><small class="mu">ফাঁকা রাখলে বিজ্ঞাপন বন্ধ থাকবে। কিছু ওয়েবসাইট অন্য পেজের ভেতরে খুলতে দেয় না, ছবির লিংক দিলে নিশ্চিন্তে চলবে।</small></div>
  <div class="card"><h2>🧩 নিজের HTML কোড যোগ করুন</h2><small class="mu">ওয়েবসাইটের হোম পেজে দেখাবে (ম্যাপ, ভিডিও, নোটিশ ইত্যাদি)</small><textarea id="hh" rows="4" style="width:100%;margin:6px 0 10px;font-family:monospace">${esc(S.hHtml)}</textarea><small class="mu">সদস্যের ওয়ালেট পেজে দেখাবে</small><textarea id="mh" rows="4" style="width:100%;margin-top:6px;font-family:monospace">${esc(S.mHtml)}</textarea><div style="margin-top:8px"><button class="btn" onclick="saveSet()">সব সংরক্ষণ করুন</button></div></div>
  <div class="card"><h2>অ্যাডমিন পাসওয়ার্ড</h2><div class="row"><input id="ap" type="password" placeholder="নতুন পাসওয়ার্ড"><button class="btn" onclick="chA()">বদলান</button></div></div>
- <div class="card"><h2>ব্যাকআপ</h2><textarea id="bk" rows="4" style="width:100%">${esc(JSON.stringify(S))}</textarea><div style="margin-top:8px"><button class="btn" onclick="restore()">ফেরত আনুন</button></div></div>`}
-function saveSet(){S.org=v('on');S.about=v('ab');S.contact=v('ct');S.ad=v('al');S.hHtml=$('hh').value;S.mHtml=$('mh').value;save();toast('সংরক্ষিত হয়েছে')}
-async function addMem(){const n=v('mn'),p=E(v('mp')).replace(/\s/g,''),w=E(v('mw'));if(!n||!p||!w)return toast('সব ঘর পূরণ করুন');if(S.members.some(m=>m.phone===p))return toast('এই নাম্বার আগেই আছে');S.members.push({id:S.n++,name:n,phone:p,pass:await H(w),joined:today()});save();toast('সদস্য যোগ হয়েছে');render()}
-async function resetP(id){const w=E(v('rp'+id));if(!w)return toast('নতুন পাসওয়ার্ড লিখুন');memb(id).pass=await H(w);save();toast('পাসওয়ার্ড বদলেছে')}
-function delM(id){if(!ask('m'+id))return;S.members=S.members.filter(m=>m.id!=id);['deposits','loans','chat'].forEach(k=>S[k]=S[k].filter(x=>x.mid!=id));save();render()}
-function addD(){const a=+v('da');if(!S.members.length||!a)return toast('টাকার পরিমাণ লিখুন');S.deposits.push({id:S.n++,mid:+v('dm'),month:v('dmo'),amt:a,date:v('dd')||today()});save();toast('জমা সংরক্ষিত');render()}
-function delD(id){if(!ask('d'+id))return;S.deposits=S.deposits.filter(d=>d.id!=id);save();render()}
-function addL(){const a=+v('la'),n=+v('ln')||1;if(!S.members.length||!a)return toast('ঋণের পরিমাণ লিখুন');S.loans.push({id:S.n++,mid:+v('lm'),amt:a,n,start:v('ls'),date:today(),note:v('lt'),paid:[]});save();toast('ঋণ সংরক্ষিত');render()}
-function pay(id){const l=S.loans.find(x=>x.id==id),s=sched(l).find(x=>!x.paid);if(!s)return;l.paid.push({m:s.m,amt:s.a,date:today()});save();toast('কিস্তি জমা হয়েছে');render()}
-function delL(id){if(!ask('l'+id))return;S.loans=S.loans.filter(l=>l.id!=id);save();render()}
-async function chA(){const w=v('ap');if(w.length<4)return toast('কমপক্ষে ৪ অক্ষর দিন');S.admin=await H(w);save();toast('পাসওয়ার্ড বদলেছে')}
-function restore(){try{const d=JSON.parse($('bk').value);if(!d.members||!d.deposits||!d.loans||!d.chat)throw 0;S=d;save();toast('ডেটা ফেরত এসেছে');render()}catch(e){toast('ব্যাকআপের লেখাটি সঠিক নয়')}}
-
-boot();</script></body></html>
+ <div class="card"><h2>ডেটা</h2><span class="mu">সব ডেটা Firebase-এ জমা থাকে (Firebase Console → Firestore Database-এ দেখা যায়)।</span></div>`}
+const sec=()=>firebase.apps.find(x=>x.name==='sec')||firebase.initializeApp(CFG,'sec');
+async function mkUser(email,pw){const x=sec().auth();const c=await x.createUserWithEmailAndPassword(email,PW(pw));await x.signOut();return c.user.uid}
+const newEmail=p=>p+'-'+Date.now().toString(36)+DOM;
+function saveSet(){col('settings').doc('main').set({org:v('on'),about:v('ab'),contact:v('ct'),ad:v('al'),hHtml:$('hh').value,mHtml:$('mh').value},{merge:true}).then(()=>toast('সংরক্ষিত হয়েছে')).catch(err)}
+async function addMem(){const n=v('mn'),p=normP(v('mp')),w=E(v('mw'));if(!n||!p||!w)return toast('সব ঘর পূরণ করুন');if(w.length<4)return toast('পাসওয়ার্ড কমপক্ষে ৪ অক্ষর দিন');if(S.members.some(m=>m.phone===p))return toast('এই নাম্বার আগেই আছে');
+ try{const em=newEmail(p),uid=await mkUser(em,w),r=col('members').doc(),b=db.batch();b.set(r,{name:n,phone:p,joined:today(),email:em,uid});b.set(col('users').doc(uid),{mid:r.id});b.set(col('phones').doc(p),{e:em});await b.commit();['mn','mp','mw'].forEach(i=>$(i)&&($(i).value=''));toast('সদস্য যোগ হয়েছে')}catch(e){err(e)}}
+async function resetP(id){const w=E(v('rp'+id)),m=memb(id);if(w.length<4)return toast('নতুন পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর) লিখুন');
+ try{const em=newEmail(m.phone),uid=await mkUser(em,w),b=db.batch();b.set(col('users').doc(uid),{mid:id});b.set(col('phones').doc(m.phone),{e:em});b.update(col('members').doc(id),{email:em,uid});if(m.uid)b.delete(col('users').doc(m.uid));await b.commit();toast('পাসওয়ার্ড বদলেছে')}catch(e){err(e)}}
+async function delM(id){if(!ask('m'+id))return;const m=memb(id),b=db.batch();b.delete(col('members').doc(id));if(m.uid)b.delete(col('users').doc(m.uid));if(m.phone)b.delete(col('phones').doc(m.phone));['deposits','loans','chat'].forEach(k=>S[k].filter(x=>x.mid==id).forEach(x=>b.delete(col(k).doc(x.id))));try{await b.commit()}catch(e){err(e)}}
+function addD(){const a=+v('da');if(!S.members.length||!a)return toast('টাকার পরিমাণ লিখুন');col('deposits').add({mid:v('dm'),month:v('dmo'),amt:a,date:v('dd')||today()}).then(()=>toast('জমা সংরক্ষিত')).catch(err)}
+function delD(id){if(!ask('d'+id))return;col('deposits').doc(id).delete().catch(err)}
+function addL(){const a=+v('la'),n=+v('ln')||1;if(!S.members.length||!a)return toast('ঋণের পরিমাণ লিখুন');col('loans').add({mid:v('lm'),amt:a,n,start:v('ls'),date:today(),note:v('lt'),paid:[]}).then(()=>toast('ঋণ সংরক্ষিত')).catch(err)}
+function pay(id){const l=S.loans.find(x=>x.id==id),s=sched(l).find(x=>!x.paid);if(!s)return;col('loans').doc(id).update({paid:[...l.paid,{m:s.m,amt:s.a,date:today()}]}).then(()=>toast('কিস্তি জমা হয়েছে')).catch(err)}
+function delL(id){if(!ask('l'+id))return;col('loans').doc(id).delete().catch(err)}
+function chA(){const w=E(v('ap'));if(w.length<4)return toast('কমপক্ষে ৪ অক্ষর দিন');auth.currentUser.updatePassword(PW(w)).then(()=>toast('পাসওয়ার্ড বদলেছে')).catch(e=>toast(e.code==='auth/requires-recent-login'?'লগআউট করে আবার ঢুকে চেষ্টা করুন':authErr(e)))}
+async function login(){const w=E(v('lw'));if(!w)return toast('পাসওয়ার্ড দিন');try{await auth.signInWithEmailAndPassword(AEMAIL,PW(w))}catch(e){toast(authErr(e))}}
+async function setup(){const w=E(v('lw'));if(w.length<4)return toast('কমপক্ষে ৪ অক্ষরের পাসওয়ার্ড লিখে তারপর চাপুন');
+ try{await auth.createUserWithEmailAndPassword(AEMAIL,PW(w));await col('settings').doc('main').set({org:S.org,about:S.about,contact:S.contact,ad:'',hHtml:'',mHtml:''},{merge:true})}catch(e){toast(e.code==='auth/email-already-in-use'?'অ্যাডমিন একাউন্ট আগেই আছে, পাসওয়ার্ড দিয়ে প্রবেশ করুন':authErr(e))}}
+auth.onAuthStateChanged(u=>{
+ if(u&&u.email===AEMAIL){if(!ok){ok=1;['members','deposits','loans','chat'].forEach(n=>listen(n,col(n),onData))}render()}
+ else{if(u)auth.signOut();ok=0;unlisten();render()}});
+listenSettings();render();
+</script></body></html>
