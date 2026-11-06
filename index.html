@@ -39,9 +39,12 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:15
 .ad{position:fixed;inset:0;background:#000;z-index:20;display:flex;flex-direction:column}.adb{flex:1;display:flex;min-height:0}
 .adb img,.adb iframe{width:100%;height:100%;border:0;object-fit:contain;background:#fff}
 .adf{padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:center;color:#fff}.adf a{color:#9fe}
-</style></head><body><div id="app"></div><div id="toast"></div><script>
-const K='samity_v2',MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-let S;
+</style></head><body><div id="app"></div><div id="toast"></div><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script><script>const APPNAME="web";
+const CFG={apiKey:"AIzaSyB3p8sTVk3-1BmkmdHzxfgQ4dFsRxVfghk",authDomain:"zadul-ulama.firebaseapp.com",projectId:"zadul-ulama",storageBucket:"zadul-ulama.firebasestorage.app",messagingSenderId:"1059850457295",appId:"1:1059850457295:web:19b4c9e4b875cd16c3a7ba"};
+const APP=firebase.initializeApp(CFG,APPNAME),auth=APP.auth(),db=APP.firestore();
+const DOM='@zadul-ulama.app',AEMAIL='admin'+DOM,PW=p=>p+'@samity';
+const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+const S={org:'আমাদের সংগঠন',about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'',ad:'',hHtml:'',mHtml:'',members:[],deposits:[],loans:[],chat:[]};
 const $=i=>document.getElementById(i),v=i=>$(i).value.trim();
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const D=s=>String(s).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]),E=s=>s.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));
@@ -49,9 +52,16 @@ const tk=n=>'৳ '+Number(n).toLocaleString('bn-BD');
 const fm=m=>{const[y,o]=m.split('-');return MN[o-1]+' '+D(y)};
 const fd=s=>{const[y,m,d]=s.split('-');return D(+d)+' '+MN[m-1]+' '+D(y)};
 const today=()=>new Date().toISOString().slice(0,10);
-async function H(p){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('sm:'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return'p:'+p}}
-function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}}
-function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+const normP=s=>E(s).replace(/[\s-]/g,'').replace(/^\+?88/,'');
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2800)}
+const authErr=e=>({'auth/invalid-credential':'নাম্বার বা পাসওয়ার্ড ভুল','auth/wrong-password':'নাম্বার বা পাসওয়ার্ড ভুল','auth/user-not-found':'নাম্বার বা পাসওয়ার্ড ভুল','auth/network-request-failed':'ইন্টারনেট সংযোগ নেই','auth/too-many-requests':'অনেকবার ভুল হয়েছে, কিছুক্ষণ পরে চেষ্টা করুন'}[e&&e.code]||'সমস্যা: '+((e&&(e.code||e.message))||e));
+const err=e=>toast(e&&e.code==='permission-denied'?'অনুমতি নেই — Firestore Rules বসানো হয়েছে কিনা দেখুন':authErr(e));
+const col=n=>db.collection(n);
+let subs=[];
+function listen(name,q,cb){subs.push(q.onSnapshot(s=>{S[name]=s.docs.map(d=>({id:d.id,...d.data()}));cb(name)},e=>err(e)))}
+function unlisten(){subs.forEach(f=>f());subs=[];S.members=[];S.deposits=[];S.loans=[];S.chat=[]}
+function listenSettings(){col('settings').doc('main').onSnapshot(s=>{if(s.exists)Object.assign(S,s.data());render()},e=>console.error(e))}
+const onData=n=>{if(typeof pg!=='undefined'&&pg==='ad')return;n==='chat'?chatNow():render()};
 const memb=id=>S.members.find(m=>m.id==id)||{name:'(মুছে ফেলা)',phone:''};
 const dep=id=>S.deposits.filter(d=>d.mid==id).reduce((a,d)=>a+d.amt,0);
 const paidS=l=>l.paid.reduce((a,p)=>a+p.amt,0),due=l=>l.amt-paidS(l);
@@ -60,19 +70,10 @@ function addM(m,i){let[y,o]=m.split('-').map(Number);const t=o-1+i;return(y+Math
 function sched(l){const per=Math.ceil(l.amt/l.n);return Array.from({length:l.n},(_,i)=>{const m=addM(l.start,i);return{m,a:i<l.n-1?per:l.amt-per*(l.n-1),paid:l.paid.find(p=>p.m===m)}})}
 const av=(m,s=40)=>m.photo?`<img class="av" style="width:${s}px;height:${s}px" src="${m.photo}">`:`<span class="av" style="width:${s}px;height:${s}px;font-size:${s/2.2}px">${esc((m.name||'?')[0])}</span>`;
 const frame=h=>h?`<div class="card"><iframe class="fr" sandbox="allow-scripts" srcdoc="${esc(h)}"></iframe></div>`:'';
-function bubbles(mid,side){return S.chat.filter(c=>c.mid==mid).map(c=>`<div class="b ${c.from===side?'me':''}">${esc(c.text)}<small>${D(c.ts.slice(5,10))} ${D(c.ts.slice(11,16))}</small></div>`).join('')||'<p class="mu">এখনো কোনো বার্তা নেই</p>'}
+function bubbles(mid,side){return S.chat.filter(c=>c.mid==mid).sort((a,b)=>a.ts.localeCompare(b.ts)).map(c=>`<div class="b ${c.from===side?'me':''}">${esc(c.text)}<small>${D(c.ts.slice(5,10))} ${D(c.ts.slice(11,16))}</small></div>`).join('')||'<p class="mu">এখনো কোনো বার্তা নেই</p>'}
 function refreshChat(mid,side){const c=$('cb');if(c){c.innerHTML=bubbles(mid,side);c.scrollTop=1e9}}
-function send(mid,side){const t=v('ci');if(!t)return;S.chat.push({id:S.n++,mid,from:side,text:t,ts:new Date().toISOString()});save();$('ci').value='';refreshChat(mid,side)}
-const chatUI=(mid,side)=>`<div class="card"><div id="cb" class="cb"></div><div class="row"><input id="ci" placeholder="বার্তা লিখুন…" onkeydown="if(event.key==='Enter')send(${mid},'${side}')"><button class="btn" onclick="send(${mid},'${side}')">পাঠান</button></div></div>`;
-async function boot(){
- try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
- if(!S){S={org:'আমাদের সংগঠন',admin:await H('admin123'),n:20,about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'যোগাযোগ: সংগঠনের অফিস / মোবাইল নাম্বার',ad:'',hHtml:'',mHtml:'',
- members:[{id:1,name:'ডেমো সদস্য',phone:'01775057576',pass:await H('1234'),joined:'2026-08-01'}],
- deposits:[{id:2,mid:1,month:'2026-08',amt:500,date:'2026-08-05'},{id:3,mid:1,month:'2026-09',amt:500,date:'2026-09-07'},{id:4,mid:1,month:'2026-10',amt:500,date:'2026-10-05'}],
- loans:[{id:5,mid:1,amt:3000,n:6,start:'2026-10',date:'2026-10-01',note:'নমুনা ঋণ',paid:[{m:'2026-10',amt:500,date:'2026-10-20'}]}],
- chat:[{id:6,mid:1,from:'a',text:'স্বাগতম! কোনো প্রশ্ন থাকলে এখানে লিখুন।',ts:new Date().toISOString()}]};save()}
- addEventListener('storage',e=>{if(e.key===K&&e.newValue){S=JSON.parse(e.newValue);if(typeof chatNow==='function')chatNow()}});
- render()}
+function send(mid,side){const t=v('ci');if(!t)return;$('ci').value='';col('chat').add({mid,from:side,text:t,ts:new Date().toISOString()}).catch(err)}
+const chatUI=(mid,side)=>`<div class="card"><div id="cb" class="cb"></div><div class="row"><input id="ci" placeholder="বার্তা লিখুন…" onkeydown="if(event.key==='Enter')send('${mid}','${side}')"><button class="btn" onclick="send('${mid}','${side}')">পাঠান</button></div></div>`;
 
 let me=null,pg='home',tab='w';
 const app=h=>$('app').innerHTML=h;
@@ -85,8 +86,9 @@ function render(){
  ${frame(S.hHtml)}<div class="card"><h2>যোগাযোগ</h2><span class="mu">${esc(S.contact)}</span></div><p class="mu" style="text-align:center;font-size:14px">© ${esc(S.org)}</p></div>`);
  if(!me)return app(`<div class="wrap"><div class="card login"><h2 style="text-align:center;font-size:24px">🤝 ${esc(S.org)}</h2><p class="mu" style="text-align:center;margin-top:0">সদস্য লগইন</p>
  <input id="lp" placeholder="মোবাইল নাম্বার" inputmode="tel"><input id="lw" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')login()">
- <button class="btn" style="width:100%" onclick="login()">প্রবেশ করুন</button><button class="btn g" style="width:100%;margin-top:8px" onclick="demo()">ডেমো সদস্য হিসাবে দেখুন</button>
- <p class="mu" style="font-size:13px">ডেমো: 01775057576 / 1234</p><p style="text-align:center;margin-bottom:0"><a href="#" style="color:var(--pr)" onclick="pg='home';render();return false">← হোম পেজ</a></p></div></div>`);
+ <button class="btn" style="width:100%" onclick="login()">প্রবেশ করুন</button>
+ <p style="text-align:center;margin-bottom:0"><a href="#" style="color:var(--pr)" onclick="pg='home';render();return false">← হোম পেজ</a></p></div></div>`);
+ if(!S.members.length)return app('<p class="mu" style="text-align:center;margin-top:30vh">লোড হচ্ছে…</p>');
  const m=memb(me.id),ls=S.loans.filter(l=>l.mid==m.id);
  const T=[['w','ওয়ালেট'],['d','জমা'],['l','কিস্তি'],['c','চ্যাট'],['p','প্রোফাইল']];
  const b={w:()=>wallet(m,ls),d:()=>deps(m),l:()=>loans(ls),c:()=>chatUI(m.id,'m'),p:()=>prof(m)}[tab]();
@@ -104,16 +106,24 @@ function loans(ls){const cur=today().slice(0,7);
  <div class="chips">${s.map(x=>`<span class="ch ${x.paid?'ok':x.m<cur?'late':''}">${fm(x.m)}<br>${tk(x.a)} ${x.paid?'✓ জমা':x.m<cur?'⚠ বকেয়া':'⏳'}</span>`).join('')}</div></div>`}).join('')||'<div class="card mu">আপনার কোনো ঋণ নেই</div>'}
 function prof(m){return`<div class="card" style="text-align:center">${av(m,96)}<div style="margin:10px 0"><label class="btn g s">ছবি বদলান<input type="file" accept="image/*" hidden onchange="pic(this)"></label></div><h2>${esc(m.name)}</h2><div class="mu">মোবাইল ${D(esc(m.phone))} · যোগদান ${fd(m.joined)}</div></div>
  <div class="card"><h2>পাসওয়ার্ড বদলান</h2><div class="row"><input id="np" type="password" placeholder="নতুন পাসওয়ার্ড"><button class="btn" onclick="cpw()">বদলান</button></div></div>`}
-function pic(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);memb(me.id).photo=c.toDataURL('image/jpeg',.8);save();render()};im.src=r.result};r.readAsDataURL(f)}
-async function cpw(){const w=E(v('np'));if(w.length<4)return toast('কমপক্ষে ৪ অক্ষর দিন');memb(me.id).pass=await H(w);save();toast('পাসওয়ার্ড বদলেছে')}
-async function login(){const p=E(v('lp')).replace(/[\s-]/g,'').replace(/^\+?88/,''),hw=await H(E(v('lw')));
- const m=S.members.find(x=>x.phone.replace(/^\+?88/,'')===p&&x.pass===hw);if(!m)return toast('নাম্বার বা পাসওয়ার্ড ভুল');
- me={id:m.id};tab='w';let need=false;if(S.ad){try{need=localStorage.getItem('ad_'+m.id)!==today()}catch(e){need=true}}pg=need?'ad':'app';render()}
-function demo(){$('lp').value='01775057576';$('lw').value='1234';login()}
-function out(){me=null;pg='home';render()}
+function pic(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);col('members').doc(me.id).update({photo:c.toDataURL('image/jpeg',.8)}).catch(err)};im.src=r.result};r.readAsDataURL(f)}
+function cpw(){const w=E(v('np'));if(w.length<4)return toast('কমপক্ষে ৪ অক্ষর দিন');auth.currentUser.updatePassword(PW(w)).then(()=>toast('পাসওয়ার্ড বদলেছে')).catch(e=>toast(e.code==='auth/requires-recent-login'?'লগআউট করে আবার ঢুকে চেষ্টা করুন':authErr(e)))}
+async function login(){const p=normP(v('lp')),w=E(v('lw'));if(!p||!w)return toast('নাম্বার ও পাসওয়ার্ড দিন');
+ try{const d=await col('phones').doc(p).get();if(!d.exists)return toast('নাম্বার বা পাসওয়ার্ড ভুল');await auth.signInWithEmailAndPassword(d.data().e,PW(w))}catch(e){toast(authErr(e))}}
+function out(){pg='home';auth.signOut()}
+async function start(m,uid){me={id:m,uid};tab='w';
+ try{const s=await col('settings').doc('main').get();if(s.exists)Object.assign(S,s.data())}catch(e){}
+ subs.push(col('members').doc(m).onSnapshot(s=>{S.members=s.exists?[{id:s.id,...s.data()}]:[];onData('members')},e=>err(e)));
+ listen('deposits',col('deposits').where('mid','==',m),onData);listen('loans',col('loans').where('mid','==',m),onData);listen('chat',col('chat').where('mid','==',m),onData);
+ let need=false;if(S.ad){try{need=localStorage.getItem('ad_'+m)!==today()}catch(e){need=true}}pg=need?'ad':'app';render()}
+auth.onAuthStateChanged(async u=>{
+ if(!u){unlisten();me=null;if(pg!=='login')pg='home';render();return}
+ if(u.email===AEMAIL){await auth.signOut();return}
+ if(me&&me.uid===u.uid)return;
+ try{const d=await col('users').doc(u.uid).get();if(!d.exists){await auth.signOut();toast('একাউন্ট পাওয়া যায়নি');return}await start(d.data().mid,u.uid)}catch(e){err(e);auth.signOut()}});
 function adShow(){try{localStorage.setItem('ad_'+me.id,today())}catch(e){}
  const img=/\.(png|jpe?g|gif|webp)(\?|$)/i.test(S.ad);
  app(`<div class="ad"><div class="adb">${img?`<img src="${esc(S.ad)}">`:`<iframe src="${esc(S.ad)}"></iframe>`}</div><div class="adf"><a href="${esc(S.ad)}" target="_blank" rel="noopener">নতুন ট্যাবে দেখুন ↗</a><span>বিজ্ঞাপন · <b id="ac">${D(5)}</b> সেকেন্ড</span></div></div>`);
  let c=5;const t=setInterval(()=>{c--;const e=$('ac');if(e)e.textContent=D(c);if(c<=0){clearInterval(t);pg='app';render()}},1000)}
-
-boot();</script></body></html>
+listenSettings();render();
+</script></body></html>
