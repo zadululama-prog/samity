@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "zadululama-prog.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Zadul Ulama",
+  "start_url": "/",
+  "theme_color": "#ffffff"
+}
