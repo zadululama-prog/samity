@@ -53,12 +53,17 @@ th,td{text-align:left;padding:8px;border-bottom:1px solid var(--bd);font-size:15
 .stat.hi{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:0}.stat.hi small,.stat.hi b{color:#fff}
 label.lb{display:flex;flex-direction:column;font-size:13px;color:var(--mu);flex:1 1 150px}
 @media print{.hd,nav,.noprint,#toast{display:none!important}body{background:#fff;color:#000}.card,.ls{box-shadow:none}}
+
+.pop{position:fixed;inset:0;background:#000a;z-index:25;display:flex;align-items:center;justify-content:center;padding:20px}
+.pb{background:var(--card);border-radius:22px;padding:24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px #0008;animation:pp .25s}.pb p{white-space:pre-wrap}
+@keyframes pp{from{transform:scale(.9);opacity:0}}
+.nt{border-left:4px solid var(--bd)}.nt.un{border-left-color:var(--pr);background:var(--pr2)}.nt p{margin:4px 0;white-space:pre-wrap}
 </style></head><body><div id="app"></div><div id="toast"></div><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script><script>const APPNAME="web";
 const CFG={apiKey:"AIzaSyB3p8sTVk3-1BmkmdHzxfgQ4dFsRxVfghk",authDomain:"zadul-ulama.firebaseapp.com",projectId:"zadul-ulama",storageBucket:"zadul-ulama.firebasestorage.app",messagingSenderId:"1059850457295",appId:"1:1059850457295:web:19b4c9e4b875cd16c3a7ba"};
 const APP=firebase.initializeApp(CFG,APPNAME),auth=APP.auth(),db=APP.firestore();
 const DOM='@zadul-ulama.app',AEMAIL='admin'+DOM,PW=p=>p+'@samity';
 const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-const S={org:'আমাদের সংগঠন',about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'',ad:'',hHtml:'',mHtml:'',members:[],deposits:[],loans:[],chat:[]};
+const S={org:'আমাদের সংগঠন',about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'',ad:'',hHtml:'',mHtml:'',members:[],deposits:[],loans:[],chat:[],notices:[],ledger:[],outsiders:[],nAll:[],nMe:[]};
 const $=i=>document.getElementById(i),v=i=>$(i).value.trim();
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const D=s=>String(s).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]),E=s=>s.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));
@@ -73,10 +78,10 @@ const err=e=>toast(e&&e.code==='permission-denied'?'অনুমতি নেই
 const col=n=>db.collection(n);
 let subs=[];
 function listen(name,q,cb){subs.push(q.onSnapshot(s=>{S[name]=s.docs.map(d=>({id:d.id,...d.data()}));cb(name)},e=>err(e)))}
-function unlisten(){subs.forEach(f=>f());subs=[];S.members=[];S.deposits=[];S.loans=[];S.chat=[]}
+function unlisten(){subs.forEach(f=>f());subs=[];S.members=[];S.deposits=[];S.loans=[];S.chat=[];S.notices=[];S.ledger=[];S.outsiders=[];S.nAll=[];S.nMe=[]}
 function listenSettings(){col('settings').doc('main').onSnapshot(s=>{if(s.exists)Object.assign(S,s.data());render()},e=>console.error(e))}
 const onData=n=>{if(typeof pg!=='undefined'&&pg==='ad')return;n==='chat'?chatNow():render()};
-const memb=id=>S.members.find(m=>m.id==id)||{name:'(মুছে ফেলা)',phone:''};
+const memb=id=>S.members.find(m=>m.id==id)||S.outsiders.find(m=>m.id==id)||{name:'(মুছে ফেলা)',phone:''};
 const dep=id=>S.deposits.filter(d=>d.mid==id).reduce((a,d)=>a+tot(d),0);
 const paidS=l=>l.paid.reduce((a,p)=>a+p.amt,0),due=l=>lpay(l)-paidS(l);
 const dueOf=id=>S.loans.filter(l=>l.mid==id).reduce((a,l)=>a+due(l),0);
@@ -113,19 +118,19 @@ const app=h=>$('app').innerHTML=h;
 function chatNow(){if(me&&tab==='c')refreshChat(me.id,'m')}
 function render(){
  if(pg==='ad')return adShow();
- if(!me&&pg==='home')return app(`<div class="hd"><b>🤝 ${esc(S.org)}</b><button onclick="pg='login';render()">সদস্য লগইন</button></div>
+ if(!me&&pg==='home')return app(`<div class="hd"><b>🤝 ${esc(S.org)}</b><button onclick="pg='login';render()">লগইন</button></div>
  <div class="hero"><h1>${esc(S.org)}</h1><p>${esc(S.about)}</p><button class="btn w" onclick="pg='login';render()">নিজের একাউন্টে প্রবেশ করুন</button></div>
  <div class="wrap" style="margin-top:14px"><div class="grid"><div class="stat"><small>💰 মাসিক জমা</small>প্রতি মাসের পূর্ণ হিসাব</div><div class="stat"><small>🏦 ঋণ ও কিস্তি</small>কোন মাসে কত কিস্তি</div><div class="stat"><small>💬 চ্যাট</small>অ্যাডমিনের সাথে সরাসরি কথা</div><div class="stat"><small>👥 সদস্য</small><b>${D(S.members.length)} জন</b></div></div>
  ${frame(S.hHtml)}<div class="card"><h2>যোগাযোগ</h2><span class="mu">${esc(S.contact)}</span></div><p class="mu" style="text-align:center;font-size:14px">© ${esc(S.org)}</p></div>`);
- if(!me)return app(`<div class="wrap"><div class="card login"><h2 style="text-align:center;font-size:24px">🤝 ${esc(S.org)}</h2><p class="mu" style="text-align:center;margin-top:0">সদস্য লগইন</p>
+ if(!me)return app(`<div class="wrap"><div class="card login"><h2 style="text-align:center;font-size:24px">🤝 ${esc(S.org)}</h2><p class="mu" style="text-align:center;margin-top:0">লগইন</p>
  <input id="lp" placeholder="মোবাইল নাম্বার" inputmode="tel"><input id="lw" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')login()">
  <button class="btn" style="width:100%" onclick="login()">প্রবেশ করুন</button>
  <p style="text-align:center;margin-bottom:0"><a href="#" style="color:var(--pr)" onclick="pg='home';render();return false">← হোম পেজ</a></p></div></div>`);
  if(!S.members.length)return app('<p class="mu" style="text-align:center;margin-top:30vh">লোড হচ্ছে…</p>');
  const m=memb(me.id),ls=S.loans.filter(l=>l.mid==m.id);
- const T=[['w','ওয়ালেট'],['f','সদস্য ফরম'],['l','ঋণ/কিস্তি'],['c','চ্যাট'],['p','প্রোফাইল']];
- const b={w:()=>wallet(m,ls),f:()=>memForm(m.id),l:()=>loans(ls),c:()=>chatUI(m.id,'m'),p:()=>prof(m)}[tab]();
- app(`<div class="hd"><span class="row" style="flex-wrap:nowrap">${av(m,38)}<b>${esc(m.name)}</b></span><button onclick="out()">লগআউট</button></div><div class="wrap"><nav>${T.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';render()">${t[1]}</button>`).join('')}</nav>${b}</div>`);
+ const T0=[['w','ওয়ালেট'],['f','সদস্য জমা'],['l','ঋণ/কিস্তি'],['n','🔔 নোটিফিকেশন'+(unread()?' ('+D(unread())+')':'')],['c','চ্যাট'],['p','প্রোফাইল']];const T=me.ext?T0.filter(t=>'lncp'.includes(t[0])):T0;
+ const b={w:()=>wallet(m,ls),f:()=>memForm(m.id),l:()=>loans(ls),n:()=>notifTab(),c:()=>chatUI(m.id,'m'),p:()=>prof(m)}[tab]();
+ app(`<div class="hd"><span class="row" style="flex-wrap:nowrap">${av(m,38)}<b>${esc(m.name)}</b></span><span class="row" style="flex-wrap:nowrap"><button onclick="tab='n';render()">🔔${unread()?' '+D(unread()):''}</button><button onclick="out()">লগআউট</button></span></div><div class="wrap"><nav>${T.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';render()">${t[1]}</button>`).join('')}</nav>${b}</div>${popup()}`);
  chatNow()}
 function wallet(m,ls){
  const tx=[...S.deposits.filter(d=>d.mid==m.id).map(d=>({d:d.date,t:'জমা · '+fm(d.month)+(d.annual?' (বাৎসরিক সহ)':'')+(d.fine?' (জরিমানা সহ)':''),a:tot(d),p:1})),...ls.flatMap(l=>l.paid.map(p=>({d:p.date,t:'কিস্তি · '+fm(p.m),a:p.amt,p:0})))].sort((a,b)=>b.d.localeCompare(a.d));
@@ -135,27 +140,44 @@ function wallet(m,ls){
  <div class="card"><h2>লেনদেনের তালিকা</h2>${tx.map(x=>`<div class="tx"><span class="ic ${x.p?'in':'out'}">${x.p?'↓':'↑'}</span><div style="flex:1"><b>${x.t}</b><br><small class="mu">${fd(x.d)}</small></div><b class="${x.p?'in':'out'}">${x.p?'+':'−'} ${tk(x.a)}</b></div>`).join('')||'<p class="mu">কোনো লেনদেন নেই</p>'}</div>${frame(S.mHtml)}`}
 function deps(m){const ds=S.deposits.filter(d=>d.mid==m.id).sort((a,b)=>b.month.localeCompare(a.month));
  return`<div class="card"><h2>মাসিক জমার হিসাব</h2><div class="tw"><table><tr><th>মাস</th><th>কোন দিন</th><th>টাকা</th></tr>${ds.map(d=>`<tr><td>${fm(d.month)}</td><td>${fd(d.date)}</td><td>${tk(d.amt)}</td></tr>`).join('')||'<tr><td colspan=3 class="mu">কোনো জমা নেই</td></tr>'}<tr><th colspan=2>মোট</th><th>${tk(dep(m.id))}</th></tr></table></div></div>`}
-function loans(ls){return ls.map(l=>loanSheet(l,false)).join('')||'<div class="card mu">আপনার কোনো ঋণ নেই</div>'}
-function prof(m){return`<div class="card" style="text-align:center">${av(m,96)}<div style="margin:10px 0"><label class="btn g s">ছবি বদলান<input type="file" accept="image/*" hidden onchange="pic(this)"></label></div><h2>${esc(m.name)}</h2><div class="mu">মোবাইল ${D(esc(m.phone))} · যোগদান ${fd(m.joined)}</div></div>
+function extSum(ls){const un=ls.flatMap(l=>sched(l).filter(s=>!s.paid)).sort((a,b)=>a.m.localeCompare(b.m)),nx=un[0],d=ls.reduce((a,l)=>a+due(l),0),p=ls.reduce((a,l)=>a+paidS(l),0);
+ return`<div class="wal"><small>আপনার বকেয়া ঋণ</small><b>${tk(d)}</b><div class="row" style="justify-content:space-between;margin-top:12px"><span>মোট পরিশোধ: ${tk(p)}</span>${nx?`<span>পরবর্তী কিস্তি: ${fm(nx.m)} · ${tk(nx.a)}</span>`:''}</div></div>`}
+function loans(ls){return(me.ext?extSum(ls):'')+(ls.map(l=>loanSheet(l,false)).join('')||'<div class="card mu">আপনার কোনো ঋণ নেই</div>')}
+function prof(m){return`<div class="card" style="text-align:center">${av(m,96)}<div style="margin:10px 0"><label class="btn g s">ছবি বদলান<input type="file" accept="image/*" hidden onchange="pic(this)"></label></div><h2>${esc(m.name)}</h2><div class="mu">মোবাইল ${D(esc(m.phone))} · যোগদান ${fd(m.joined||m.date||today())}</div></div>
  <div class="card"><h2>পাসওয়ার্ড বদলান</h2><div class="row"><input id="np" type="password" placeholder="নতুন পাসওয়ার্ড"><button class="btn" onclick="cpw()">বদলান</button></div></div>`}
-function pic(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);col('members').doc(me.id).update({photo:c.toDataURL('image/jpeg',.8)}).catch(err)};im.src=r.result};r.readAsDataURL(f)}
+function pic(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);col(me.ext?'outsiders':'members').doc(me.id).update({photo:c.toDataURL('image/jpeg',.8)}).catch(err)};im.src=r.result};r.readAsDataURL(f)}
 function cpw(){const w=E(v('np'));if(w.length<4)return toast('কমপক্ষে ৪ অক্ষর দিন');auth.currentUser.updatePassword(PW(w)).then(()=>toast('পাসওয়ার্ড বদলেছে')).catch(e=>toast(e.code==='auth/requires-recent-login'?'লগআউট করে আবার ঢুকে চেষ্টা করুন':authErr(e)))}
 async function login(){const p=normP(v('lp')),w=E(v('lw'));if(!p||!w)return toast('নাম্বার ও পাসওয়ার্ড দিন');
  try{const d=await col('phones').doc(p).get();if(!d.exists)return toast('নাম্বার বা পাসওয়ার্ড ভুল');await auth.signInWithEmailAndPassword(d.data().e,PW(w))}catch(e){toast(authErr(e))}}
 function out(){pg='home';auth.signOut()}
-async function start(m,uid){me={id:m,uid};tab='w';
+async function start(m,uid,ext){me={id:m,uid,ext};tab=ext?'l':'w';
  try{const s=await col('settings').doc('main').get();if(s.exists)Object.assign(S,s.data())}catch(e){}
- subs.push(col('members').doc(m).onSnapshot(s=>{S.members=s.exists?[{id:s.id,...s.data()}]:[];onData('members')},e=>err(e)));
- listen('deposits',col('deposits').where('mid','==',m),onData);listen('loans',col('loans').where('mid','==',m),onData);listen('chat',col('chat').where('mid','==',m),onData);
+ subs.push(col(ext?'outsiders':'members').doc(m).onSnapshot(s=>{S.members=s.exists?[{id:s.id,...s.data()}]:[];onData('members')},e=>err(e)));
+ listen('deposits',col('deposits').where('mid','==',m),onData);listen('loans',col('loans').where('mid','==',m),onData);listen('chat',col('chat').where('mid','==',m),onData);nKnown=new Set();nStart=Date.now();listen('nAll',col('notices').where('mid','==',ext?'allx':'all'),()=>{onNotice();onData('n')});listen('nMe',col('notices').where('mid','==',m),()=>{onNotice();onData('n')});
  let need=false;if(S.ad){try{need=localStorage.getItem('ad_'+m)!==today()}catch(e){need=true}}pg=need?'ad':'app';render()}
 auth.onAuthStateChanged(async u=>{
  if(!u){unlisten();me=null;if(pg!=='login')pg='home';render();return}
  if(u.email===AEMAIL){await auth.signOut();return}
  if(me&&me.uid===u.uid)return;
- try{const d=await col('users').doc(u.uid).get();if(!d.exists){await auth.signOut();toast('একাউন্ট পাওয়া যায়নি');return}await start(d.data().mid,u.uid)}catch(e){err(e);auth.signOut()}});
+ try{const d=await col('users').doc(u.uid).get();if(!d.exists){await auth.signOut();toast('একাউন্ট পাওয়া যায়নি');return}await start(d.data().mid,u.uid,!!d.data().ext)}catch(e){err(e);auth.signOut()}});
 function adShow(){try{localStorage.setItem('ad_'+me.id,today())}catch(e){}
  const img=/\.(png|jpe?g|gif|webp)(\?|$)/i.test(S.ad);
  app(`<div class="ad"><div class="adb">${img?`<img src="${esc(S.ad)}">`:`<iframe src="${esc(S.ad)}"></iframe>`}</div><div class="adf"><a href="${esc(S.ad)}" target="_blank" rel="noopener">নতুন ট্যাবে দেখুন ↗</a><span>বিজ্ঞাপন · <b id="ac">${D(5)}</b> সেকেন্ড</span></div></div>`);
  let c=5;const t=setInterval(()=>{c--;const e=$('ac');if(e)e.textContent=D(c);if(c<=0){clearInterval(t);pg='app';render()}},1000)}
+let nKnown=null,nStart=0;
+const rd=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return[]}},wr=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}};
+function myN(){const base=[...S.nAll,...S.nMe],ls=S.loans.filter(l=>l.mid==me.id),nx=ls.flatMap(l=>sched(l).filter(s=>!s.paid)).sort((a,b)=>a.m.localeCompare(b.m))[0],cur=today().slice(0,7);
+ if(nx&&nx.m<=addM(cur,1))base.push({id:'auto-'+nx.m,auto:1,title:nx.m<cur?'⚠ বকেয়া কিস্তি':'📅 কিস্তির অনুস্মারক',text:fm(nx.m)+' মাসের কিস্তি '+tk(nx.a)+' (কিস্তি নং '+D(String(nx.no).padStart(2,'0'))+')',ts:nx.m+'-01T00:00:00.000Z'});
+ return base.sort((a,b)=>b.ts.localeCompare(a.ts))}
+const unread=()=>{if(!me)return 0;const s=rd('seen_'+me.id);return myN().filter(n=>!s.includes(n.id)).length};
+function popup(){if(!me)return'';const d=rd('pop_'+me.id),n=myN().find(x=>x.popup&&!d.includes(x.id));if(!n)return'';
+ return`<div class="pop"><div class="pb"><div style="font-size:42px">📣</div><h2>${esc(n.title)}</h2><p>${esc(n.text)}</p><button class="btn" onclick="popOk('${n.id}')">ঠিক আছে</button></div></div>`}
+function popOk(id){wr('pop_'+me.id,[...rd('pop_'+me.id),id]);wr('seen_'+me.id,[...rd('seen_'+me.id),id]);render()}
+function notifTab(){const L=myN(),s=rd('seen_'+me.id);
+ const h=('Notification' in window&&Notification.permission==='default'?`<div class="card"><b>📲 ফোনে নোটিফিকেশন</b><p class="mu">চালু করলে অ্যাপ খোলা থাকাকালীন নতুন বার্তা ফোনের নোটিফিকেশন হিসেবে আসবে।</p><button class="btn" onclick="askN()">চালু করুন</button></div>`:'')+(L.map(n=>`<div class="card nt ${s.includes(n.id)?'':'un'}"><b>${esc(n.title)}</b><p>${esc(n.text)}</p><small class="mu">${fd(n.ts.slice(0,10))}</small></div>`).join('')||'<div class="card mu">কোনো নোটিফিকেশন নেই</div>');
+ wr('seen_'+me.id,[...new Set([...s,...L.map(n=>n.id)])]);return h}
+function askN(){try{Notification.requestPermission().then(()=>render())}catch(e){}}
+function osNote(n){try{if(!('Notification' in window)||Notification.permission!=='granted')return;const o={body:n.text,icon:'icon-192.png'};navigator.serviceWorker&&navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(n.title,o):new Notification(n.title,o)).catch(()=>{})}catch(e){}}
+function onNotice(){if(!nKnown)return;[...S.nAll,...S.nMe].forEach(n=>{if(!nKnown.has(n.id)){nKnown.add(n.id);if(Date.now()-nStart>3500)osNote(n)}})}
 listenSettings();render();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script></body></html>
