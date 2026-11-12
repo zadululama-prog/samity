@@ -58,12 +58,18 @@ label.lb{display:flex;flex-direction:column;font-size:13px;color:var(--mu);flex:
 .pb{background:var(--card);border-radius:22px;padding:24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px #0008;animation:pp .25s}.pb p{white-space:pre-wrap}
 @keyframes pp{from{transform:scale(.9);opacity:0}}
 .nt{border-left:4px solid var(--bd)}.nt.un{border-left-color:var(--pr);background:var(--pr2)}.nt p{margin:4px 0;white-space:pre-wrap}
+
+.bn{width:100%;border-radius:16px;margin-bottom:14px;display:block;max-height:220px;object-fit:cover}.hero .bn{max-width:720px;margin:0 auto 18px}
+.cv{height:150px;background:linear-gradient(120deg,var(--g1),var(--g2));background-size:cover;background-position:center;position:relative}
+.pf{margin-top:-48px;padding:0 16px 12px;display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;position:relative}.pf .av{border:4px solid var(--card)}
+.pst{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;border-top:1px solid var(--bd)}.pst div{padding:10px 4px}.pst b{display:block;color:var(--pr);font-size:17px}.pst small{color:var(--mu)}
+.bg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}.bk{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center;cursor:pointer;box-shadow:0 4px 18px #0000000d}.bk:hover{border-color:var(--pr)}.bk.late{border-color:var(--rd)}.bk small{display:block}
 </style></head><body><div id="app"></div><div id="toast"></div><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script><script>const APPNAME="web";
 const CFG={apiKey:"AIzaSyB3p8sTVk3-1BmkmdHzxfgQ4dFsRxVfghk",authDomain:"zadul-ulama.firebaseapp.com",projectId:"zadul-ulama",storageBucket:"zadul-ulama.firebasestorage.app",messagingSenderId:"1059850457295",appId:"1:1059850457295:web:19b4c9e4b875cd16c3a7ba"};
 const APP=firebase.initializeApp(CFG,APPNAME),auth=APP.auth(),db=APP.firestore();
 const DOM='@zadul-ulama.app',AEMAIL='admin'+DOM,PW=p=>p+'@samity';
 const MN=['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
-const S={org:'আমাদের সংগঠন',about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'',ad:'',hHtml:'',mHtml:'',members:[],deposits:[],loans:[],chat:[],notices:[],ledger:[],outsiders:[],nAll:[],nMe:[]};
+const S={org:'আমাদের সংগঠন',about:'আমরা একটি সঞ্চয় ও সহযোগিতামূলক সংগঠন। সদস্যদের মাসিক জমা ও ঋণের হিসাব স্বচ্ছভাবে সংরক্ষণ করাই আমাদের লক্ষ্য।',contact:'',ad:'',hHtml:'',mHtml:'',links:'',banner:'',members:[],deposits:[],loans:[],chat:[],notices:[],ledger:[],outsiders:[],nAll:[],nMe:[]};
 const $=i=>document.getElementById(i),v=i=>$(i).value.trim();
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const D=s=>String(s).replace(/\d/g,d=>'০১২৩৪৫৬৭৮৯'[d]),E=s=>s.replace(/[০-৯]/g,d=>'০১২৩৪৫৬৭৮৯'.indexOf(d));
@@ -103,11 +109,19 @@ function memForm(mid){
  return`<div class="card fh"><div class="row" style="flex-wrap:nowrap">${av(m,72)}<div><div class="mu">${esc(S.org)}</div><b style="font-size:20px">${m.no?D(m.no)+'/ ':''}${esc(m.name)}</b><div class="mu">মোবাইল ${D(esc(m.phone))}${m.joined?' · যোগদান '+fd(m.joined):''}</div></div><div style="margin-left:auto;text-align:right"><small class="mu">মোট ব্যালেন্স</small><br><b style="font-size:22px;color:var(--pr)">${tk(run)}</b></div></div></div>${out}`}
 function loanSheet(l,adm){
  const s=sched(l),P=lpay(l),I=linst(l),cur=today().slice(0,7),fi=s.findIndex(x=>!x.paid);let cum=0;
- const rows=s.map((x,i)=>{const p=x.paid;if(p)cum+=p.amt;const cls=p?'ok':i===fi?'next':x.m<cur?'late':'';
+ const rows=s.map((x,i)=>{const p=x.paid;if(p)cum+=p.amt;const cls=p?'ok':dueDate(l,x.m)<today()?'late':i===fi?'next':'';
   const act=adm&&i===fi?`<div class="row" style="flex-wrap:nowrap;justify-content:center"><input id="pd${l.id}" type="date" value="${today()}" style="width:140px"><input id="pa${l.id}" type="number" value="${x.a}" style="width:90px"><button class="btn s" onclick="pay('${l.id}')">জমা</button></div>`:'';
-  return`<tr class="${cls}"><td>${fm(x.m)}</td><td>${tk(x.a)}</td><td>${p?tk(cum):''}</td><td>${p?fd(p.date):act||(i===fi?'<small>আগামী কিস্তি</small>':'')}</td><td>${p?tk(P-cum):''}</td><td>${D(String(x.no).padStart(2,'0'))}</td></tr>`}).join('');
- const H=[['ঋণীর নাম',memb(l.mid).name],['ঋণের পরিমাণ',tk(l.amt)],['পরিশোধ করবে',tk(P)],['মোট কিস্তি',D(String(s.length).padStart(2,'0'))+' টি'],['ঋণের মাস/তারিখ',fd(l.date)],['জামিনদার',l.gn||'—'],['মোবাইল নাম্বার',l.gp?D(l.gp):'—'],['কিস্তির পরিমাণ',tk(I)]];
+  return`<tr class="${cls}"><td>${fm(x.m)}</td><td>${tk(x.a)}</td><td>${p?tk(cum):''}</td><td>${p?fd(p.date):(act||'')+`<small class="${dueDate(l,x.m)<today()?'x':'mu'}" style="display:block">শেষ: ${fd(dueDate(l,x.m))}</small>`}</td><td>${p?tk(P-cum):''}</td><td>${D(String(x.no).padStart(2,'0'))}</td></tr>`}).join('');
+ const H=[['ঋণীর নাম',memb(l.mid).name],['ঋণের পরিমাণ',tk(l.amt)],['পরিশোধ করবে',tk(P)],['মোট কিস্তি',D(String(s.length).padStart(2,'0'))+' টি'],['ঋণের মাস/তারিখ',fd(l.date)],['জামিনদার',l.gn||'—'],['মোবাইল নাম্বার',l.gp?D(l.gp):'—'],['কিস্তির পরিমাণ',tk(I)],['শেষ তারিখ','প্রতি মাসের '+D(l.dd||10)+' তারিখ']];
  return`<div class="lh">${H.map(h=>`<div><small>${h[0]}</small><b>${esc(h[1])}</b></div>`).join('')}</div><div class="ls"><div class="tw"><table class="lt"><tr><th>মাস</th><th>মাসিক কিস্তি</th><th>পরিশোধ হয়েছে</th><th>কিস্তির তারিখ</th><th>পরিশোধ বাকি</th><th>কিস্তি নং</th></tr>${rows}</table></div><div class="sm"><span>পরিশোধ: <b>${tk(cum)}</b> · বাকি: <b>${tk(P-cum)}</b> ${P-cum<=0?'<span class="pill">পরিশোধিত</span>':''}</span>${adm?del('l'+l.id,`delL('${l.id}')`):''}</div></div>`}
+const dim=(y,m)=>new Date(y,m,0).getDate();
+function dueDate(l,m){const[y,o]=m.split('-').map(Number);return m+'-'+String(Math.min(l.dd||10,dim(y,o))).padStart(2,'0')}
+const overd=l=>sched(l).filter(s=>!s.paid&&dueDate(l,s.m)<today()),isPaidOff=l=>due(l)<=0;
+const safeUrl=u=>{u=(u||'').trim();return u?(/^https?:\/\//i.test(u)?u:'https://'+u):''};
+const waNum=n=>{n=E(String(n||'')).replace(/\D/g,'');return n.startsWith('0')?'88'+n:n};
+function parseLinks(t){return(t||'').split('\n').map(x=>x.split('|').map(s=>s.trim())).filter(a=>a[0]&&a[1]).map(a=>({t:a[0],u:safeUrl(a[1])}))}
+const linksHTML=()=>{const L=parseLinks(S.links);return L.length?`<div class="card"><h2>🔗 সংগঠনের লিংক</h2><div class="row">${L.map(x=>`<a class="btn g" target="_blank" rel="noopener noreferrer" href="${esc(x.u)}">${esc(x.t)}</a>`).join('')}</div></div>`:''};
+const bannerHTML=()=>S.banner?`<img class="bn" src="${esc(S.banner)}" alt="">`:'';
 function bubbles(mid,side){return S.chat.filter(c=>c.mid==mid).sort((a,b)=>a.ts.localeCompare(b.ts)).map(c=>`<div class="b ${c.from===side?'me':''}">${esc(c.text)}<small>${D(c.ts.slice(5,10))} ${D(c.ts.slice(11,16))}</small></div>`).join('')||'<p class="mu">এখনো কোনো বার্তা নেই</p>'}
 function refreshChat(mid,side){const c=$('cb');if(c){c.innerHTML=bubbles(mid,side);c.scrollTop=1e9}}
 function send(mid,side){const t=v('ci');if(!t)return;$('ci').value='';col('chat').add({mid,from:side,text:t,ts:new Date().toISOString()}).catch(err)}
@@ -119,9 +133,9 @@ function chatNow(){if(me&&tab==='c')refreshChat(me.id,'m')}
 function render(){
  if(pg==='ad')return adShow();
  if(!me&&pg==='home')return app(`<div class="hd"><b>🤝 ${esc(S.org)}</b><button onclick="pg='login';render()">লগইন</button></div>
- <div class="hero"><h1>${esc(S.org)}</h1><p>${esc(S.about)}</p><button class="btn w" onclick="pg='login';render()">নিজের একাউন্টে প্রবেশ করুন</button></div>
+ <div class="hero">${bannerHTML()}<h1>${esc(S.org)}</h1><p>${esc(S.about)}</p><button class="btn w" onclick="pg='login';render()">নিজের একাউন্টে প্রবেশ করুন</button></div>
  <div class="wrap" style="margin-top:14px"><div class="grid"><div class="stat"><small>💰 মাসিক জমা</small>প্রতি মাসের পূর্ণ হিসাব</div><div class="stat"><small>🏦 ঋণ ও কিস্তি</small>কোন মাসে কত কিস্তি</div><div class="stat"><small>💬 চ্যাট</small>অ্যাডমিনের সাথে সরাসরি কথা</div><div class="stat"><small>👥 সদস্য</small><b>${D(S.members.length)} জন</b></div></div>
- ${frame(S.hHtml)}<div class="card"><h2>যোগাযোগ</h2><span class="mu">${esc(S.contact)}</span></div><p class="mu" style="text-align:center;font-size:14px">© ${esc(S.org)}</p></div>`);
+ ${linksHTML()}${frame(S.hHtml)}<div class="card"><h2>যোগাযোগ</h2><span class="mu">${esc(S.contact)}</span></div><p class="mu" style="text-align:center;font-size:14px">© ${esc(S.org)}</p></div>`);
  if(!me)return app(`<div class="wrap"><div class="card login"><h2 style="text-align:center;font-size:24px">🤝 ${esc(S.org)}</h2><p class="mu" style="text-align:center;margin-top:0">লগইন</p>
  <input id="lp" placeholder="মোবাইল নাম্বার" inputmode="tel"><input id="lw" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')login()">
  <button class="btn" style="width:100%" onclick="login()">প্রবেশ করুন</button>
@@ -130,22 +144,35 @@ function render(){
  const m=memb(me.id),ls=S.loans.filter(l=>l.mid==m.id);
  const T0=[['w','ওয়ালেট'],['f','সদস্য জমা'],['l','ঋণ/কিস্তি'],['n','🔔 নোটিফিকেশন'+(unread()?' ('+D(unread())+')':'')],['c','চ্যাট'],['p','প্রোফাইল']];const T=me.ext?T0.filter(t=>'lncp'.includes(t[0])):T0;
  const b={w:()=>wallet(m,ls),f:()=>memForm(m.id),l:()=>loans(ls),n:()=>notifTab(),c:()=>chatUI(m.id,'m'),p:()=>prof(m)}[tab]();
- app(`<div class="hd"><span class="row" style="flex-wrap:nowrap">${av(m,38)}<b>${esc(m.name)}</b></span><span class="row" style="flex-wrap:nowrap"><button onclick="tab='n';render()">🔔${unread()?' '+D(unread()):''}</button><button onclick="out()">লগআউট</button></span></div><div class="wrap"><nav>${T.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';render()">${t[1]}</button>`).join('')}</nav>${b}</div>${popup()}`);
+ app(`<div class="hd"><span class="row" style="flex-wrap:nowrap;cursor:pointer" onclick="tab='p';render()">${av(m,38)}<b>${esc(m.name)}</b></span><span class="row" style="flex-wrap:nowrap"><button onclick="tab='n';render()">🔔${unread()?' '+D(unread()):''}</button></span></div><div class="wrap">${bannerHTML()}<nav>${T.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';render()">${t[1]}</button>`).join('')}</nav>${b}</div>${popup()}`);
  chatNow()}
 function wallet(m,ls){
  const tx=[...S.deposits.filter(d=>d.mid==m.id).map(d=>({d:d.date,t:'জমা · '+fm(d.month)+(d.annual?' (বাৎসরিক সহ)':'')+(d.fine?' (জরিমানা সহ)':''),a:tot(d),p:1})),...ls.flatMap(l=>l.paid.map(p=>({d:p.date,t:'কিস্তি · '+fm(p.m),a:p.amt,p:0})))].sort((a,b)=>b.d.localeCompare(a.d));
  const un=ls.flatMap(l=>sched(l).filter(s=>!s.paid)).sort((a,b)=>a.m.localeCompare(b.m)),nx=un[0],nm=addM(today().slice(0,7),1),nmAmt=un.filter(s=>s.m===nm).reduce((a,s)=>a+s.a,0);
  return`<div class="wal"><small>আপনার মোট ব্যালেন্স (জমা)</small><b>${tk(dep(m.id))}</b><div class="row" style="justify-content:space-between;margin-top:12px"><span>বকেয়া ঋণ: ${tk(dueOf(m.id))}</span>${nx?`<span>পরবর্তী কিস্তি: ${fm(nx.m)} · ${tk(nx.a)}</span>`:''}</div></div>
  ${nx?`<div class="card" style="border-left:5px solid var(--am)"><b>📅 আগামী কিস্তি</b><div>${fm(nx.m)} — <b>${tk(nx.a)}</b> (কিস্তি নং ${D(String(nx.no).padStart(2,'0'))})</div>${nmAmt&&nm!==nx.m?`<div class="mu">আগামী মাসে (${fm(nm)}) দিতে হবে: ${tk(nmAmt)}</div>`:''}</div>`:''}
- <div class="card"><h2>লেনদেনের তালিকা</h2>${tx.map(x=>`<div class="tx"><span class="ic ${x.p?'in':'out'}">${x.p?'↓':'↑'}</span><div style="flex:1"><b>${x.t}</b><br><small class="mu">${fd(x.d)}</small></div><b class="${x.p?'in':'out'}">${x.p?'+':'−'} ${tk(x.a)}</b></div>`).join('')||'<p class="mu">কোনো লেনদেন নেই</p>'}</div>${frame(S.mHtml)}`}
+ ${linksHTML()}<div class="card"><h2>লেনদেনের তালিকা</h2>${tx.map(x=>`<div class="tx"><span class="ic ${x.p?'in':'out'}">${x.p?'↓':'↑'}</span><div style="flex:1"><b>${x.t}</b><br><small class="mu">${fd(x.d)}</small></div><b class="${x.p?'in':'out'}">${x.p?'+':'−'} ${tk(x.a)}</b></div>`).join('')||'<p class="mu">কোনো লেনদেন নেই</p>'}</div>${frame(S.mHtml)}`}
 function deps(m){const ds=S.deposits.filter(d=>d.mid==m.id).sort((a,b)=>b.month.localeCompare(a.month));
  return`<div class="card"><h2>মাসিক জমার হিসাব</h2><div class="tw"><table><tr><th>মাস</th><th>কোন দিন</th><th>টাকা</th></tr>${ds.map(d=>`<tr><td>${fm(d.month)}</td><td>${fd(d.date)}</td><td>${tk(d.amt)}</td></tr>`).join('')||'<tr><td colspan=3 class="mu">কোনো জমা নেই</td></tr>'}<tr><th colspan=2>মোট</th><th>${tk(dep(m.id))}</th></tr></table></div></div>`}
 function extSum(ls){const un=ls.flatMap(l=>sched(l).filter(s=>!s.paid)).sort((a,b)=>a.m.localeCompare(b.m)),nx=un[0],d=ls.reduce((a,l)=>a+due(l),0),p=ls.reduce((a,l)=>a+paidS(l),0);
  return`<div class="wal"><small>আপনার বকেয়া ঋণ</small><b>${tk(d)}</b><div class="row" style="justify-content:space-between;margin-top:12px"><span>মোট পরিশোধ: ${tk(p)}</span>${nx?`<span>পরবর্তী কিস্তি: ${fm(nx.m)} · ${tk(nx.a)}</span>`:''}</div></div>`}
-function loans(ls){return(me.ext?extSum(ls):'')+(ls.map(l=>loanSheet(l,false)).join('')||'<div class="card mu">আপনার কোনো ঋণ নেই</div>')}
-function prof(m){return`<div class="card" style="text-align:center">${av(m,96)}<div style="margin:10px 0"><label class="btn g s">ছবি বদলান<input type="file" accept="image/*" hidden onchange="pic(this)"></label></div><h2>${esc(m.name)}</h2><div class="mu">মোবাইল ${D(esc(m.phone))} · যোগদান ${fd(m.joined||m.date||today())}</div></div>
- <div class="card"><h2>পাসওয়ার্ড বদলান</h2><div class="row"><input id="np" type="password" placeholder="নতুন পাসওয়ার্ড"><button class="btn" onclick="cpw()">বদলান</button></div></div>`}
-function pic(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const s=Math.min(im.width,im.height);c.getContext('2d').drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);col(me.ext?'outsiders':'members').doc(me.id).update({photo:c.toDataURL('image/jpeg',.8)}).catch(err)};im.src=r.result};r.readAsDataURL(f)}
+function loans(ls){const ac=ls.filter(l=>!isPaidOff(l)),pd=ls.filter(isPaidOff);
+ return(me.ext?extSum(ls)+linksHTML():'')+(ac.map(l=>loanSheet(l,false)).join('')||`<div class="card mu">${pd.length?'চলমান কোনো ঋণ নেই 🎉':'আপনার কোনো ঋণ নেই'}</div>`)+(pd.length?`<div class="card"><h2>✅ পরিশোধিত ঋণ (${D(pd.length)})</h2><small class="mu">এই ঋণগুলো সম্পূর্ণ পরিশোধ হয়েছে</small></div>`+pd.map(l=>loanSheet(l,false)).join(''):'')}
+function prof(m){
+ const ls=S.loans.filter(l=>l.mid==m.id),d=ls.reduce((a,l)=>a+due(l),0),bg=m.cover||S.banner,cv=bg?`background-image:url(${esc(bg)})`:'';
+ const ch=[m.phone?`<a class="btn g s" href="tel:${esc(m.phone)}">📞 ${D(esc(m.phone))}</a>`:'',m.wa?`<a class="btn g s" target="_blank" rel="noopener noreferrer" href="https://wa.me/${esc(waNum(m.wa))}">💬 WhatsApp</a>`:'',m.fb?`<a class="btn g s" target="_blank" rel="noopener noreferrer" href="${esc(safeUrl(m.fb))}">📘 Facebook</a>`:''].join(' ');
+ const st=me.ext?[[tk(d),'বকেয়া ঋণ'],[D(ls.length)+' টি','মোট ঋণ'],[D(ls.filter(isPaidOff).length)+' টি','পরিশোধিত']]:[[tk(dep(m.id)),'মোট জমা'],[tk(d),'বকেয়া ঋণ'],[m.no?D(m.no):'—','সদস্য নং']];
+ return`<div class="card" style="padding:0;overflow:hidden"><div class="cv" style="${cv}">${pedit?`<label class="btn s" style="position:absolute;right:10px;bottom:10px">কভার বদলান<input type="file" accept="image/*" hidden onchange="pic(this,'cover')"></label>`:''}</div>
+ <div class="pf">${av(m,96)}<div style="flex:1;min-width:150px"><h2 style="margin:0;font-size:22px">${m.no?D(m.no)+'/ ':''}${esc(m.name)}</h2><div class="mu">${me.ext?'ঋণগ্রহীতা':'সদস্য'} · ${fd(m.joined||m.date||today())} থেকে</div></div><button class="btn g s" onclick="pedit=!pedit;render()">${pedit?'বন্ধ করুন':'✏️ সম্পাদনা'}</button></div>
+ <div style="padding:0 16px 14px">${m.bio?`<p style="margin:0 0 10px;white-space:pre-wrap">${esc(m.bio)}</p>`:''}${m.addr?`<div class="mu" style="margin-bottom:8px">📍 ${esc(m.addr)}</div>`:''}<div class="row">${ch}</div></div>
+ <div class="pst">${st.map(x=>`<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('')}</div></div>
+ ${pedit?`<div class="card"><h2>প্রোফাইল সম্পাদনা</h2><div style="margin-bottom:8px"><label class="btn g s">ছবি বদলান<input type="file" accept="image/*" hidden onchange="pic(this,'photo')"></label></div><textarea id="pb" rows="2" style="width:100%;margin-bottom:8px" placeholder="নিজের সম্পর্কে লিখুন">${esc(m.bio||'')}</textarea><input id="pfb" value="${esc(m.fb||'')}" placeholder="Facebook প্রোফাইলের লিংক" style="width:100%;margin-bottom:8px"><input id="pwa" value="${esc(m.wa||'')}" placeholder="WhatsApp নাম্বার" inputmode="tel" style="width:100%;margin-bottom:8px"><input id="pad" value="${esc(m.addr||'')}" placeholder="ঠিকানা" style="width:100%;margin-bottom:8px"><button class="btn" onclick="saveP()">সংরক্ষণ করুন</button></div>`:''}
+ ${linksHTML()}
+ <div class="card"><h2>পাসওয়ার্ড বদলান</h2><div class="row"><input id="np" type="password" placeholder="নতুন পাসওয়ার্ড"><button class="btn" onclick="cpw()">বদলান</button></div></div>
+ <button class="btn d" style="width:100%" onclick="out()">লগআউট</button>`}
+function pic(i,f){const fl=i.files[0];if(!fl)return;const cv=f==='cover',W=cv?800:160,H=cv?240:160,r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=W;c.height=H;const k=Math.max(W/im.width,H/im.height),sw=W/k,sh=H/k;c.getContext('2d').drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,0,0,W,H);col(me.ext?'outsiders':'members').doc(me.id).update({[f]:c.toDataURL('image/jpeg',.8)}).catch(err)};im.src=r.result};r.readAsDataURL(fl)}
+let pedit=false;
+function saveP(){col(me.ext?'outsiders':'members').doc(me.id).update({bio:v('pb'),fb:v('pfb'),wa:E(v('pwa')),addr:v('pad')}).then(()=>{pedit=false;toast('প্রোফাইল সংরক্ষিত হয়েছে');render()}).catch(err)}
 function cpw(){const w=E(v('np'));if(w.length<4)return toast('কমপক্ষে ৪ অক্ষর দিন');auth.currentUser.updatePassword(PW(w)).then(()=>toast('পাসওয়ার্ড বদলেছে')).catch(e=>toast(e.code==='auth/requires-recent-login'?'লগআউট করে আবার ঢুকে চেষ্টা করুন':authErr(e)))}
 async function login(){const p=normP(v('lp')),w=E(v('lw'));if(!p||!w)return toast('নাম্বার ও পাসওয়ার্ড দিন');
  try{const d=await col('phones').doc(p).get();if(!d.exists)return toast('নাম্বার বা পাসওয়ার্ড ভুল');await auth.signInWithEmailAndPassword(d.data().e,PW(w))}catch(e){toast(authErr(e))}}
@@ -168,6 +195,8 @@ let nKnown=null,nStart=0;
 const rd=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch(e){return[]}},wr=(k,a)=>{try{localStorage.setItem(k,JSON.stringify(a))}catch(e){}};
 function myN(){const base=[...S.nAll,...S.nMe],ls=S.loans.filter(l=>l.mid==me.id),nx=ls.flatMap(l=>sched(l).filter(s=>!s.paid)).sort((a,b)=>a.m.localeCompare(b.m))[0],cur=today().slice(0,7);
  if(nx&&nx.m<=addM(cur,1))base.push({id:'auto-'+nx.m,auto:1,title:nx.m<cur?'⚠ বকেয়া কিস্তি':'📅 কিস্তির অনুস্মারক',text:fm(nx.m)+' মাসের কিস্তি '+tk(nx.a)+' (কিস্তি নং '+D(String(nx.no).padStart(2,'0'))+')',ts:nx.m+'-01T00:00:00.000Z'});
+ const od=ls.flatMap(l=>overd(l).map(s=>({l,s})));
+ if(od.length)base.push({id:'od-'+today(),auto:1,popup:1,title:'⚠ ঋণের কিস্তি বকেয়া',text:'আপনার '+D(od.length)+' টি কিস্তির শেষ তারিখ পেরিয়ে গেছে:\n'+od.map(x=>'• '+fm(x.s.m)+' — '+tk(x.s.a)+' (শেষ তারিখ '+fd(dueDate(x.l,x.s.m))+')').join('\n')+'\n\nমোট বকেয়া: '+tk(od.reduce((t,x)=>t+x.s.a,0))+'\nঅনুগ্রহ করে দ্রুত পরিশোধ করুন।',ts:new Date().toISOString()});
  return base.sort((a,b)=>b.ts.localeCompare(a.ts))}
 const unread=()=>{if(!me)return 0;const s=rd('seen_'+me.id);return myN().filter(n=>!s.includes(n.id)).length};
 function popup(){if(!me)return'';const d=rd('pop_'+me.id),n=myN().find(x=>x.popup&&!d.includes(x.id));if(!n)return'';
